@@ -93,37 +93,11 @@ const login = async (state, credentials)=>{
     // Connect socket function to handle socket connection and online users updates
     const connectSocket = (userData)=>{
         if(!userData || socket?.connected) return;
-        
-        console.log("Connecting to socket with backend URL:", backendUrl);
-        console.log("User ID:", userData._id);
-        
         const newSocket = io(backendUrl, {
             query: {
                 userId: userData._id,
-            },
-            transports: ['polling', 'websocket'],
-            upgrade: true,
-            rememberUpgrade: false,
-            timeout: 20000,
-            forceNew: true,
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
+            }
         });
-
-        // Add connection event listeners for debugging
-        newSocket.on("connect", () => {
-            console.log("Socket connected successfully:", newSocket.id);
-        });
-
-        newSocket.on("connect_error", (error) => {
-            console.error("Socket connection error:", error);
-        });
-
-        newSocket.on("disconnect", (reason) => {
-            console.log("Socket disconnected:", reason);
-        });
-
         newSocket.connect();
         setSocket(newSocket);
 

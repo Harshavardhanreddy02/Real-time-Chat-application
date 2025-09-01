@@ -11,39 +11,42 @@ import { Server } from "socket.io";
 const app = express();
 const server = http.createServer(app)
 
-// Initialize socket.io server with comprehensive configuration
+// Initialize socket.io server
 export const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: function (origin, callback) {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+            
+            // Allow all localhost origins
+            if (origin.includes('localhost')) {
+                return callback(null, true);
+            }
+            
+            // Allow all Vercel app deployments
+            if (origin.includes('vercel.app')) {
+                return callback(null, true);
+            }
+            
+            console.log('Socket.IO CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        },
         methods: ["GET", "POST"],
-        allowedHeaders: ["Content-Type"],
-        credentials: false
+        credentials: true,
+        allowEIO3: true
     },
     allowEIO3: true,
-    transports: ['polling', 'websocket'],
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    upgradeTimeout: 30000,
-    maxHttpBufferSize: 1e6
+    transports: ['polling', 'websocket']
 })
 
 // Store online users and typing users
 export const userSocketMap = {}; // { userId: socketId }
 export const typingUsers = {}; // { userId: { typingTo: receiverId, timeout: timeoutId } }
 
-// Add Socket.IO debugging
-io.engine.on("connection_error", (err) => {
-    console.log("Socket.IO connection error:", err.req);
-    console.log("Error code:", err.code);
-    console.log("Error message:", err.message);
-    console.log("Error context:", err.context);
-});
-
 // Socket.io connection handler
 io.on("connection", (socket)=>{
     const userId = socket.handshake.query.userId;
-    console.log("User Connected", userId, "Socket ID:", socket.id);
-    console.log("Connection headers:", socket.handshake.headers.origin);
+    console.log("User Connected", userId);
 
     if(userId) userSocketMap[userId] = socket.id;
     
