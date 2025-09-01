@@ -13,7 +13,30 @@ const server = http.createServer(app)
 
 // Initialize socket.io server
 export const io = new Server(server, {
-    cors: {origin: "*"}
+    cors: {
+        origin: function (origin, callback) {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+            
+            // Allow all localhost origins
+            if (origin.includes('localhost')) {
+                return callback(null, true);
+            }
+            
+            // Allow all Vercel app deployments
+            if (origin.includes('vercel.app')) {
+                return callback(null, true);
+            }
+            
+            console.log('Socket.IO CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        },
+        methods: ["GET", "POST"],
+        credentials: true,
+        allowEIO3: true
+    },
+    allowEIO3: true,
+    transports: ['polling', 'websocket']
 })
 
 // Store online users and typing users
