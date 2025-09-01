@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, useCallback } from "react";
 import axios from 'axios'
 import toast from "react-hot-toast";
 import { io } from "socket.io-client"
@@ -17,17 +17,32 @@ export const AuthProvider = ({ children })=>{
     const [socket, setSocket] = useState(null);
 
     // Check if user is authenticated and if so, set the user data and connect the socket
-    const checkAuth = async () => {
+    const checkAuth = useCallback(async () => {
         try {
-            const { data } = await axios.get("/api/auth/check");
+            if (!token) {
+                return; // No token, user not authenticated
+            }
+            
+            const { data } = await axios.get("/api/auth/check", {
+                headers: {
+                    token: token
+                }
+            });
+            
             if (data.success) {
                 setAuthUser(data.user)
                 connectSocket(data.user)
             }
         } catch (error) {
-            toast.error(error.message)
+            console.log("Auth check error:", error);
+            // If token is invalid or expired, clear it
+            if (error.response?.status === 401) {
+                localStorage.removeItem("token");
+                setToken(null);
+                setAuthUser(null);
+            }
         }
-    }
+    }, [token])
 
 // Login function to handle user authentication and socket connection
 
@@ -94,9 +109,9 @@ const login = async (state, credentials)=>{
     useEffect(()=>{
         if(token){
             axios.defaults.headers.common["token"] = token;
+            checkAuth();
         }
-        checkAuth();
-    },[])
+    },[token, checkAuth])
 
     const value = {
         axios,
