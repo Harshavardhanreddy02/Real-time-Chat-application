@@ -146,6 +146,11 @@ app.use(cors({
             return callback(null, true);
         }
         
+        // Allow specific frontend domain
+        if (origin === 'https://real-time-chat-application-fqq5.vercel.app') {
+            return callback(null, true);
+        }
+        
         console.log('CORS blocked origin:', origin);
         callback(new Error('Not allowed by CORS'));
     },
