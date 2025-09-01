@@ -140,29 +140,31 @@ app.use(cors({
     optionsSuccessStatus: 200
 }));
 
-// Manual CORS headers as fallback - more aggressive approach
+// Ultra-aggressive CORS headers - apply to ALL requests
 app.use((req, res, next) => {
     const origin = req.headers.origin;
-    console.log('Request from origin:', origin);
+    console.log('v3.0 - Request from origin:', origin, 'Method:', req.method);
     
-    // Always set CORS headers for all requests
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, token, X-Requested-With');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    // Set all possible CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, token');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '3600');
     
+    // Handle preflight requests immediately
     if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS preflight request from:', origin);
-        res.status(200).end();
+        console.log('v3.0 - Handling OPTIONS preflight from:', origin);
+        res.status(200).json({});
         return;
     }
+    
     next();
 });
 
 
 // Routes setup
-app.use("/api/status", (req, res)=> res.send("Server is live"));
+app.use("/api/status", (req, res)=> res.send("Server is live - v3.0 - CORS Ultimate Fix"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter)
 
