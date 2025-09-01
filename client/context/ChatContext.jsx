@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { AuthContext } from "./AuthContext";
 import toast from "react-hot-toast";
 
@@ -11,6 +11,7 @@ export const ChatProvider = ({ children })=>{
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null)
     const [unseenMessages, setUnseenMessages] = useState({})
+    const [typingUsers, setTypingUsers] = useState({})
 
     const {socket, axios} = useContext(AuthContext);
 
@@ -53,8 +54,8 @@ export const ChatProvider = ({ children })=>{
         }
     }
 
-    // function to subscribe to messages for selected user
-    const subscribeToMessages = async () =>{
+    // function to subscribe to messages and typing events for selected user
+    const subscribeToMessages = useCallback(() =>{
         if(!socket) return;
 
         socket.on("newMessage", (newMessage)=>{
@@ -68,20 +69,39 @@ export const ChatProvider = ({ children })=>{
                 }))
             }
         })
-    }
 
-    // function to unsubscribe from messages
-    const unsubscribeFromMessages = ()=>{
-        if(socket) socket.off("newMessage");
-    }
+        // Listen for typing events
+        socket.on("userTyping", ({ userId }) => {
+            console.log(`Received userTyping event from ${userId}`);
+            setTypingUsers((prev) => ({ ...prev, [userId]: true }));
+        });
+
+        socket.on("userStoppedTyping", ({ userId }) => {
+            console.log(`Received userStoppedTyping event from ${userId}`);
+            setTypingUsers((prev) => {
+                const updated = { ...prev };
+                delete updated[userId];
+                return updated;
+            });
+        });
+    }, [socket, selectedUser, axios])
+
+    // function to unsubscribe from messages and typing events
+    const unsubscribeFromMessages = useCallback(()=>{
+        if(socket) {
+            socket.off("newMessage");
+            socket.off("userTyping");
+            socket.off("userStoppedTyping");
+        }
+    }, [socket])
 
     useEffect(()=>{
         subscribeToMessages();
         return ()=> unsubscribeFromMessages();
-    },[socket, selectedUser])
+    },[subscribeToMessages, unsubscribeFromMessages])
 
     const value = {
-        messages, users, selectedUser, getUsers, getMessages, sendMessage, setSelectedUser, unseenMessages, setUnseenMessages
+        messages, users, selectedUser, getUsers, getMessages, sendMessage, setSelectedUser, unseenMessages, setUnseenMessages, typingUsers
     }
 
     return (

@@ -8,18 +8,50 @@ import toast from 'react-hot-toast'
 const ChatContainer = () => {
 
     const { messages, selectedUser, setSelectedUser, sendMessage, 
-        getMessages} = useContext(ChatContext)
+        getMessages, typingUsers} = useContext(ChatContext)
 
-    const { authUser, onlineUsers } = useContext(AuthContext)
+    const { authUser, onlineUsers, socket } = useContext(AuthContext)
 
     const scrollEnd = useRef()
 
     const [input, setInput] = useState('');
+    const [typingTimeout, setTypingTimeout] = useState(null);
+
+    // Handle typing events
+    const handleTyping = () => {
+        if (socket && selectedUser) {
+            console.log(`Emitting typing event to ${selectedUser._id}`);
+            socket.emit("typing", { receiverId: selectedUser._id });
+            
+            // Clear existing timeout
+            if (typingTimeout) {
+                clearTimeout(typingTimeout);
+            }
+            
+            // Set new timeout to stop typing after 2 seconds
+            const timeout = setTimeout(() => {
+                console.log(`Auto-stopping typing to ${selectedUser._id}`);
+                socket.emit("stopTyping", { receiverId: selectedUser._id });
+            }, 2000);
+            
+            setTypingTimeout(timeout);
+        }
+    };
 
     // Handle sending a message
     const handleSendMessage = async (e)=>{
         e.preventDefault();
         if(input.trim() === "") return null;
+        
+        // Stop typing when sending message
+        if (socket && selectedUser) {
+            socket.emit("stopTyping", { receiverId: selectedUser._id });
+        }
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+            setTypingTimeout(null);
+        }
+        
         await sendMessage({text: input.trim()});
         setInput("")
     }
@@ -59,7 +91,15 @@ const ChatContainer = () => {
         <img src={selectedUser.profilePic || assets.avatar_icon} alt="" className="w-8 rounded-full"/>
         <p className='flex-1 text-lg text-white flex items-center gap-2'>
             {selectedUser.fullName}
-            {onlineUsers.includes(selectedUser._id) && <span className="w-2 h-2 rounded-full bg-green-500"></span>}
+            {(() => {
+                console.log(`Checking typing status for ${selectedUser._id}:`, typingUsers[selectedUser._id]);
+                console.log('All typing users:', typingUsers);
+                return typingUsers[selectedUser._id] ? (
+                    <span className="text-sm text-gray-300 animate-pulse">typing...</span>
+                ) : (
+                    onlineUsers.includes(selectedUser._id) && <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                );
+            })()}
         </p>
         <img onClick={()=> setSelectedUser(null)} src={assets.arrow_icon} alt="" className='md:hidden max-w-7'/>
         <img src={assets.help_icon} alt="" className='max-md:hidden max-w-5'/>
@@ -85,8 +125,17 @@ const ChatContainer = () => {
 {/* ------- bottom area ------- */}
     <div className='absolute bottom-0 left-0 right-0 flex items-center gap-3 p-3'>
         <div className='flex-1 flex items-center bg-gray-100/12 px-3 rounded-full'>
-            <input onChange={(e)=> setInput(e.target.value)} value={input} onKeyDown={(e)=> e.key === "Enter" ? handleSendMessage(e) : null} type="text" placeholder="Send a message" 
-            className='flex-1 text-sm p-3 border-none rounded-lg outline-none text-white placeholder-gray-400'/>
+            <input 
+                onChange={(e)=> {
+                    setInput(e.target.value);
+                    handleTyping();
+                }} 
+                value={input} 
+                onKeyDown={(e)=> e.key === "Enter" ? handleSendMessage(e) : null} 
+                type="text" 
+                placeholder="Send a message" 
+                className='flex-1 text-sm p-3 border-none rounded-lg outline-none text-white placeholder-gray-400'
+            />
             <input onChange={handleSendImage} type="file" id='image' accept='image/png, image/jpeg' hidden/>
             <label htmlFor="image">
                 <img src={assets.gallery_icon} alt="" className="w-5 mr-2 cursor-pointer"/>
