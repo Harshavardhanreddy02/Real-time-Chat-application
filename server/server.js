@@ -130,48 +130,30 @@ io.on("connection", (socket)=>{
 // Middleware setup
 app.use(express.json({limit: "4mb"}));
 
-// CORS configuration - Allow all Vercel deployments and localhost
+// CORS configuration - Allow all origins for now to debug
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        // Allow all localhost origins
-        if (origin.includes('localhost')) {
-            return callback(null, true);
-        }
-        
-        // Allow all Vercel app deployments
-        if (origin.includes('vercel.app')) {
-            return callback(null, true);
-        }
-        
-        // Allow specific frontend domain
-        if (origin === 'https://real-time-chat-application-fqq5.vercel.app') {
-            return callback(null, true);
-        }
-        
-        console.log('CORS blocked origin:', origin);
-        callback(new Error('Not allowed by CORS'));
-    },
+    origin: true, // Allow all origins
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'token']
+    allowedHeaders: ['Content-Type', 'Authorization', 'token', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 200
 }));
 
-// Manual CORS headers as fallback
+// Manual CORS headers as fallback - more aggressive approach
 app.use((req, res, next) => {
     const origin = req.headers.origin;
+    console.log('Request from origin:', origin);
     
-    // Set CORS headers for all Vercel and localhost origins
-    if (!origin || origin.includes('localhost') || origin.includes('vercel.app')) {
-        res.setHeader('Access-Control-Allow-Origin', origin || '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, token');
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
+    // Always set CORS headers for all requests
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, token, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
     
     if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS preflight request from:', origin);
         res.status(200).end();
         return;
     }
