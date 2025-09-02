@@ -11,32 +11,20 @@ import { Server } from "socket.io";
 const app = express();
 const server = http.createServer(app)
 
-// Initialize socket.io server
+// Initialize socket.io server with Vercel-optimized configuration
 export const io = new Server(server, {
     cors: {
-        origin: function (origin, callback) {
-            // Allow requests with no origin (like mobile apps or curl requests)
-            if (!origin) return callback(null, true);
-            
-            // Allow all localhost origins
-            if (origin.includes('localhost')) {
-                return callback(null, true);
-            }
-            
-            // Allow all Vercel app deployments
-            if (origin.includes('vercel.app')) {
-                return callback(null, true);
-            }
-            
-            console.log('Socket.IO CORS blocked origin:', origin);
-            callback(new Error('Not allowed by CORS'));
-        },
+        origin: "*", // Allow all origins for Vercel compatibility
         methods: ["GET", "POST"],
-        credentials: true,
+        credentials: false, // Set to false for broader compatibility
         allowEIO3: true
     },
     allowEIO3: true,
-    transports: ['polling'] // Force polling-only for Vercel compatibility
+    transports: ['polling'], // Force polling-only for Vercel serverless
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    upgradeTimeout: 30000,
+    maxHttpBufferSize: 1e6
 })
 
 // Store online users and typing users
@@ -164,7 +152,7 @@ app.use((req, res, next) => {
 
 
 // Routes setup
-app.use("/api/status", (req, res)=> res.send("Server is live - v3.1 - Polling-only for Vercel"));
+app.use("/api/status", (req, res)=> res.send("Server is live - v3.2 - Vercel-optimized Socket.IO"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter)
 

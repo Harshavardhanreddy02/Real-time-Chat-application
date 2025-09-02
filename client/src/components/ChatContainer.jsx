@@ -91,15 +91,7 @@ const ChatContainer = () => {
         <img src={selectedUser.profilePic || assets.avatar_icon} alt="" className="w-8 rounded-full"/>
         <p className='flex-1 text-lg text-white flex items-center gap-2'>
             {selectedUser.fullName}
-            {(() => {
-                console.log(`Checking typing status for ${selectedUser._id}:`, typingUsers[selectedUser._id]);
-                console.log('All typing users:', typingUsers);
-                return typingUsers[selectedUser._id] ? (
-                    <span className="text-sm text-gray-300 animate-pulse">typing...</span>
-                ) : (
-                    onlineUsers.includes(selectedUser._id) && <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                );
-            })()}
+            {onlineUsers.includes(selectedUser._id) && <span className="w-2 h-2 rounded-full bg-green-500"></span>}
         </p>
         <img onClick={()=> setSelectedUser(null)} src={assets.arrow_icon} alt="" className='md:hidden max-w-7'/>
         <img src={assets.help_icon} alt="" className='max-md:hidden max-w-5'/>
@@ -119,6 +111,21 @@ const ChatContainer = () => {
                 </div>
             </div>
         ))}
+        
+        {/* Typing indicator in chat area */}
+        {typingUsers[selectedUser._id] && (
+          <div className="flex items-end gap-2 mb-4">
+            <div className="flex items-center gap-2 p-3 bg-gray-600/30 rounded-lg rounded-bl-none max-w-[200px]">
+              <img src={selectedUser?.profilePic || assets.avatar_icon} alt="" className='w-6 rounded-full' />
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div ref={scrollEnd}></div>
       </div>
 
