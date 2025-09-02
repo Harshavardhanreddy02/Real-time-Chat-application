@@ -36,7 +36,7 @@ export const io = new Server(server, {
         allowEIO3: true
     },
     allowEIO3: true,
-    transports: ['polling', 'websocket']
+    transports: ['polling'] // Force polling-only for Vercel compatibility
 })
 
 // Store online users and typing users
@@ -164,7 +164,7 @@ app.use((req, res, next) => {
 
 
 // Routes setup
-app.use("/api/status", (req, res)=> res.send("Server is live - v3.0 - CORS Ultimate Fix"));
+app.use("/api/status", (req, res)=> res.send("Server is live - v3.1 - Polling-only for Vercel"));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter)
 
